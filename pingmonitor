@@ -1,0 +1,70 @@
+#!/usr/bin/python3
+
+## 2017-01-03 : tkooda : simple cross-platform ping monitor
+
+## Unix usage:  `pingmonitor |tee -a ping_log.txt`
+
+## Windows usage:  `pingmonitor > ping_log.txt | type ping_log.txt`
+
+
+import os
+import time
+import platform
+import netifaces
+from argparse import ArgumentParser
+
+
+def out( s ):
+	print( time.strftime( "%F %T" ) + " " + s )
+
+
+def ping( address ):
+	if platform.system() == "Windows":
+		return not os.system( "ping -n 1 -w 1000 %s > NUL" % address )
+	else:
+		return not os.system( "ping -c 1 -W 1 %s >/dev/null" % address )
+
+
+def summarize( host, prev_status, is_up ):
+	s = "%s is %s" % ( host, [ "down", "up", "" ][ is_up ] )
+	if prev_status[ 0 ] == 2: # initial
+		return s
+	
+	s += ", was %s for" % [ "up", "down" ][ is_up ]
+	
+	seconds = int( time.time() - prev_status[ 1 ] )
+	hours, seconds =  seconds // 3600, seconds % 3600
+	minutes, seconds = seconds // 60, seconds % 60
+	
+	if hours:
+		s += " %dh" % hours
+	if minutes:
+		s += " %dm" % minutes
+	if seconds:
+		s += " %ds" % seconds
+	return s
+
+
+## parse args..
+parser = ArgumentParser( description = "Use ping to monitor hosts" )
+#parser.add_argument( "host", nargs="*", action="append_const", help="Host (IP or hostname) to monitor" )
+parser.add_argument( "host", nargs="*", help="Host (IP or hostname) to monitor" )
+parser.add_argument( "--no-gateway", "-n", action="store_true", default=False, help="Do not also monitor the default network gateway" )
+parser.add_argument( "--sleep", "-s", type=int, action="store", default=1, help="Seconds to sleep between pings" )
+args = parser.parse_args()
+
+if not args.no_gateway:
+	args.host.append( netifaces.gateways()[ 'default' ][ netifaces.AF_INET ][ 0 ] )
+
+## main() ..
+out( "monitoring: " + " ".join( args.host ) )
+statuses = {}
+while True:
+	for host in args.host:
+		prev_status = statuses.get( host, ( 2, time.time() ) ) # 2 == init
+		is_up = ping( host )
+		if prev_status[ 0 ] != is_up: # if status has changed..
+			out( summarize( host, prev_status, is_up ) )
+			statuses[ host ] = ( is_up, time.time() )
+	time.sleep( args.sleep )
+
