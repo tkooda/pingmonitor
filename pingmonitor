@@ -2,9 +2,7 @@
 
 ## 2017-01-03 : tkooda : simple cross-platform ping monitor
 
-## Unix usage:  `pingmonitor |tee -a ping_log.txt`
-
-## Windows usage:  `pingmonitor > ping_log.txt | type ping_log.txt`
+## usage: `pingmonitor -l ping_log.txt google.com example.com`
 
 
 import os
