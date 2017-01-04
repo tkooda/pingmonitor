@@ -15,7 +15,11 @@ from argparse import ArgumentParser
 
 
 def out( s ):
-	print( time.strftime( "%F %T" ) + " " + s )
+	l = time.strftime( "%F %T" ) + " " + s
+	print( l )
+	if args.log_file:
+		with open( args.log_file, "a" ) as f:
+			f.write( l + "\n" )
 
 
 def ping( address ):
@@ -51,6 +55,7 @@ parser = ArgumentParser( description = "Use ping to monitor hosts" )
 parser.add_argument( "host", nargs="*", help="Host (IP or hostname) to monitor" )
 parser.add_argument( "--no-gateway", "-n", action="store_true", default=False, help="Do not also monitor the default network gateway" )
 parser.add_argument( "--sleep", "-s", type=int, action="store", default=1, help="Seconds to sleep between pings" )
+parser.add_argument( "--log-file", "-l", action="store", help="Log to file" )
 args = parser.parse_args()
 
 if not args.no_gateway:
